@@ -56,40 +56,48 @@ preprocess_data <- function(file_path) {
   return(data)
 }
 
+
 # Create total data plot
 create_total_data_plot <- function(data) {
+  data <- data %>%
+    mutate(Arrived = as.Date(Arrived), # Ensure Arrived is in Date format
+           Year = lubridate::year(Arrived)) # Extract Year from Arrived
+
   total_data_agg <- data %>%
     count(Arrived, name = "NumSamples") %>%
     arrange(Arrived) %>%
     mutate(MovingAverage = rollmean(NumSamples, k = 30, fill = NA, align = "right"),
-           StdDev = rollapply(NumSamples, width = 30, FUN = sd, fill = NA, align = "right")) %>%
-    filter(!is.na(MovingAverage))
+           StdDev = rollapply(NumSamples, width = 30, FUN = sd, fill = NA, align = "right"))
 
-  lowest_two_total <- total_data_agg %>%
-    arrange(MovingAverage) %>%
-    slice(1:2)
+  lowest_per_year <- total_data_agg %>%
+    mutate(Year = year(Arrived)) %>%
+    group_by(Year) %>%
+    slice(which.min(MovingAverage)) %>%
+    ungroup()
 
-  plot_ly() %>%
-    layout(plot_bgcolor = '#282a36', paper_bgcolor = '#282a36') %>%
-    add_trace(data = total_data_agg, x = ~Arrived, y = ~NumSamples, type = 'scatter', mode = 'markers',
-              marker = list(color = '#6272a4', opacity = 0.3), name = 'Daily Sample Arrivals') %>%
-    add_trace(data = total_data_agg, x = ~Arrived, y = ~MovingAverage, type = 'scatter', mode = 'lines',
-              line = list(color = '#50fa7b'), name = '30-Day Moving Average') %>%
-    add_trace(data = lowest_two_total, x = ~Arrived, y = ~MovingAverage, type = 'scatter', mode = 'markers',
-              marker = list(color = 'red', size = 8), name = 'Lowest Points') %>%
-    add_ribbons(data = total_data_agg, x = ~Arrived, ymin = ~MovingAverage - StdDev, ymax = ~MovingAverage + StdDev, 
-                line = list(color = 'rgba(139, 233, 253, 0.2)'), fillcolor = 'rgba(139, 233, 253, 0.3)', 
-                name = '1 Std Dev') %>%
-    add_ribbons(data = total_data_agg, x = ~Arrived, ymin = ~MovingAverage - 2 * StdDev, ymax = ~MovingAverage + 2 * StdDev, 
-                line = list(color = 'rgba(255, 184, 108, 0.2)'), fillcolor = 'rgba(255, 184, 108, 0.1)', 
-                name = '2 Std Dev') %>%
-    add_ribbons(data = total_data_agg, x = ~Arrived, ymin = ~MovingAverage - 3 * StdDev, ymax = ~MovingAverage + 3 * StdDev, 
-                line = list(color = 'rgba(255, 85, 85, 0.2)'), fillcolor = 'rgba(255, 85, 85, 0.1)', 
-                name = '3 Std Dev') %>%
-    layout(title = list(text = '30-Day Moving Average with Standard Deviations and Daily Sample Arrivals', font = list(color = '#f8f8f2')),
-           xaxis = list(title = list(text = 'Arrival Date', font = list(color = '#f8f8f2')), tickfont = list(color = '#f8f8f2')),
-           yaxis = list(title = list(text = 'Sample Count', font = list(color = '#f8f8f2')), tickfont = list(color = '#f8f8f2')),
-           legend = list(font = list(color = '#f8f8f2')))
+  p <- plot_ly() %>%
+  layout(plot_bgcolor = '#282a36', paper_bgcolor = '#282a36') %>%
+  add_trace(data = total_data_agg, x = ~Arrived, y = ~NumSamples, type = 'scatter', mode = 'markers',
+            marker = list(color = '#6272a4', opacity = 0.3), name = 'Daily Sample Arrivals') %>%
+  add_trace(data = total_data_agg, x = ~Arrived, y = ~MovingAverage, type = 'scatter', mode = 'lines',
+            line = list(color = '#50fa7b'), name = '30-Day Moving Average') %>%
+  add_trace(data = lowest_per_year, x = ~Arrived, y = ~MovingAverage, type = 'scatter', mode = 'markers',
+              marker = list(color = 'red', size = 10), name = 'Lowest Moving Average per Year') %>%
+  add_ribbons(data = total_data_agg, x = ~Arrived, ymin = ~MovingAverage - StdDev, ymax = ~MovingAverage + StdDev, 
+              line = list(color = 'rgba(139, 233, 253, 0.2)'), fillcolor = 'rgba(139, 233, 253, 0.3)', 
+              name = '1 Std Dev') %>%
+  add_ribbons(data = total_data_agg, x = ~Arrived, ymin = ~MovingAverage - 2 * StdDev, ymax = ~MovingAverage + 2 * StdDev, 
+              line = list(color = 'rgba(255, 184, 108, 0.2)'), fillcolor = 'rgba(255, 184, 108, 0.1)', 
+              name = '2 Std Dev') %>%
+  add_ribbons(data = total_data_agg, x = ~Arrived, ymin = ~MovingAverage - 3 * StdDev, ymax = ~MovingAverage + 3 * StdDev, 
+              line = list(color = 'rgba(255, 85, 85, 0.2)'), fillcolor = 'rgba(255, 85, 85, 0.1)', 
+              name = '3 Std Dev') %>%
+  layout(title = list(text = '30-Day Moving Average with Standard Deviations and Daily Sample Arrivals', font = list(color = '#f8f8f2')),
+         xaxis = list(title = list(text = 'Arrival Date', font = list(color = '#f8f8f2')), tickfont = list(color = '#f8f8f2')),
+         yaxis = list(title = list(text = 'Sample Count', font = list(color = '#f8f8f2')), tickfont = list(color = '#f8f8f2')),
+         legend = list(font = list(color = '#f8f8f2')))
+    
+  return(p)
 }
 
 # Main script
