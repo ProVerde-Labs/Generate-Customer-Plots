@@ -24,19 +24,19 @@ This repository contains an R script for processing customer data and generating
 ## Usage
 
 1. Clone this repository:
-   \```bash
+   ```bash
    git clone https://github.com/ProVerde-Labs/Generate-Customer-Plots.git
    cd Generate-Customer-Plots
-   \```
+   ```
 
 2. Place your data file (`DataQueryExport_CN_240701.csv`) in the repository directory.
 
 3. Run the script:
    - On Windows, run the batch file:
-     \```bash
+     ```bash
      ./run_analysis.bat
-     \```
+     ```
    - On other operating systems, run the R script directly:
-     \```bash
+     ```bash
      Rscript generate_plots.R
-     \```
+     ```
