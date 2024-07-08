@@ -63,6 +63,24 @@ create_total_data_plot <- function(data) {
     mutate(Arrived = as.Date(Arrived), # Ensure Arrived is in Date format
            Year = lubridate::year(Arrived)) # Extract Year from Arrived
 
+  # Extend data to current date
+  last_date <- max(data$Arrived)
+  current_date <- Sys.Date()
+
+  if (last_date < current_date) {
+    date_sequence <- seq(last_date + 1, current_date, by = "day")
+    extended_data <- data.frame(
+      Arrived = date_sequence,
+      NumSamples = 0
+    )
+    total_data_agg <- bind_rows(
+      data %>% count(Arrived, name = "NumSamples"),
+      extended_data
+    ) %>% arrange(Arrived)
+  } else {
+    total_data_agg <- data %>% count(Arrived, name = "NumSamples") %>% arrange(Arrived)
+  }
+
   total_data_agg <- data %>%
     count(Arrived, name = "NumSamples") %>%
     arrange(Arrived) %>%
